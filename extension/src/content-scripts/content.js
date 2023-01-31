@@ -1,9 +1,28 @@
 import {
-	APPLY_FILTERS,
 	CONTENT_BACKGROUND,
 	EXTENSION_CONTENTSCRIPT,
-	SET_ALARM,
+	READ_WAIT_TIME_PROGRESS,
+	READ_WAIT_TIME_SUCCESS,
 } from '../contants';
+
+/* eslint-disable no-undef*/
+const contentBackgroundPort = chrome?.runtime?.connect({
+	name: CONTENT_BACKGROUND,
+});
+
+contentBackgroundPort?.onMessage?.addListener(function (contentBackgroundMsg) {
+	const { type } = contentBackgroundMsg;
+	switch (type) {
+		case READ_WAIT_TIME_PROGRESS:
+			contentBackgroundPort.postMessage({
+				type: READ_WAIT_TIME_SUCCESS,
+				payload: readWaitTimes(),
+			});
+			return;
+		default:
+			return;
+	}
+});
 
 export function readWaitTimes() {
 	// * Table container
@@ -20,44 +39,38 @@ export function readWaitTimes() {
 	const tableRows = table?.getElementsByTagName('tr');
 
 	// * Process table rows
-	if (tableRows)
-		for (let tableRow of tableRows) {
-			// * Get cols
-			const rowCells = tableRow?.getElementsByTagName('td');
-
-			const nonImmigrantVisaType = rowCells?.[0]?.innerHTML;
-			const waitTime = Number(rowCells?.[1]?.innerText?.split(' ')?.[0]); // TODO: Error Handling
-
-			console.log(
-				'Nonimmigrant Visa Type: ' +
-					nonImmigrantVisaType +
-					', Wait Time: ' +
-					waitTime,
-			);
-		}
+	if (tableRows) {
+		const nonImmigrantCells = tableRows?.[2]?.getElementsByTagName('td');
+		const nonImmigrantVisaType = nonImmigrantCells?.[0]?.innerText;
+		const waitTime = Number(nonImmigrantCells?.[1]?.innerText?.split(' ')?.[0]);
+		return {
+			nonImmigrantVisaType,
+			waitTime,
+		};
+	}
 }
 
-/* eslint-disable no-undef */
-const contentBackgroundPort = chrome?.runtime?.connect({
-	name: CONTENT_BACKGROUND,
-});
+chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
+	console.assert(extensionContentScriptPort?.name === EXTENSION_CONTENTSCRIPT);
 
-chrome?.runtime?.onConnect?.addListener(function (extensionContentPort) {
-	console.assert(extensionContentPort?.name === EXTENSION_CONTENTSCRIPT);
-
-	extensionContentPort?.onMessage?.addListener(function (extensionContentMsg) {
-		const { type } = extensionContentMsg;
-
+	extensionContentScriptPort?.onMessage?.addListener(function (
+		extensionContentScriptMsg,
+	) {
+		const { type } = extensionContentScriptMsg;
 		switch (type) {
-			case APPLY_FILTERS:
-				return contentBackgroundPort.postMessage({
-					type: SET_ALARM,
+			case READ_WAIT_TIME_PROGRESS: {
+				let { nonImmigrantVisaType, waitTime } = readWaitTimes();
+				extensionContentScriptPort?.postMessage({
+					type: READ_WAIT_TIME_SUCCESS,
 					payload: {
-						periodInMinutes: 1,
+						nonImmigrantVisaType,
+						waitTime,
 					},
 				});
+				return;
+			}
 			default:
-				console.log({ extensionContentMsg });
+				console.log('NO TYPE MENTIONED - content-script');
 		}
 	});
 });

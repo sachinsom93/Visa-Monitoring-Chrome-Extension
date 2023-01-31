@@ -1,30 +1,15 @@
-import { APPLY_FILTERS, CONTENT_BACKGROUND } from '../contants';
+import {
+	CANCEL_ALARM_PROGRESS,
+	CANCEL_ALARM_SUCCESS,
+	CONTENT_BACKGROUND,
+	READ_WAIT_TIME_PROGRESS,
+	READ_WAIT_TIME_SUCCESS,
+	SET_ALARM_PROGRESS,
+} from '../contants';
 import { FILTER_ALARM } from '../contants/alarms';
 
 /* eslint-disable no-undef */
 let notificationId = 0;
-
-// TODO: Wrap the listener inside chrome?.runtime?.onInstalled event
-chrome?.alarms?.onAlarm.addListener(function (alarm) {
-	const alarmType = alarm?.name;
-
-	switch (alarmType) {
-		case FILTER_ALARM:
-			console.log(notificationId);
-			chrome?.notifications?.create('testNotification-' + notificationId, {
-				type: 'basic',
-				title: 'Test Alarm',
-				message: 'Test alarm message.',
-				iconUrl: '../../logo192.png',
-				priority: 2,
-			});
-			notificationId += 1;
-			break;
-		default:
-			console.error({ alarm });
-			break;
-	}
-});
 
 chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 	console.assert(contentBackgroundPort?.name === CONTENT_BACKGROUND);
@@ -32,11 +17,32 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 	contentBackgroundPort?.onMessage?.addListener(function (
 		contentBackgroundMsg,
 	) {
-		const { type } = contentBackgroundMsg;
-
-		switch (type) {
+		const { type, payload } = contentBackgroundMsg;
+		if (type === READ_WAIT_TIME_SUCCESS) {
+			if (payload?.nonImmigrantVisaType && payload?.waitTime) {
+				chrome?.notifications?.create('testNotification-' + notificationId, {
+					type: 'basic',
+					title: 'Visa Wait Time Monitoring Extension',
+					message: `Current Value for ${payload?.nonImmigrantVisaType} is ${payload?.waitTime}`,
+					iconUrl: '../../logo192.png',
+					priority: 2,
+				});
+				notificationId += 1;
+			}
+		}
+	});
+	chrome?.alarms?.onAlarm.addListener(function (alarm) {
+		const alarmType = alarm?.name;
+		switch (alarmType) {
+			case FILTER_ALARM:
+				contentBackgroundPort?.postMessage({
+					// TODO: Port closed!!!!!!
+					type: READ_WAIT_TIME_PROGRESS,
+				});
+				break;
 			default:
-				console.log('default case in background.js');
+				console.error({ alarm });
+				break;
 		}
 	});
 });
@@ -46,15 +52,28 @@ chrome?.runtime?.onMessage?.addListener(function (
 	sender,
 	sendResponse,
 ) {
-	console.log(request);
-
-	if (request?.type === APPLY_FILTERS) {
-		const payload = JSON.parse(request?.payload);
-		if (payload?.['filters-#1-repeatAfter']) {
-			chrome?.alarms?.create(FILTER_ALARM, {
-				periodInMinutes: Number(payload?.['filters-#1-repeatAfter']),
+	const jsonReq = JSON.parse(request);
+	const type = jsonReq?.type;
+	const payload = jsonReq?.payload;
+	switch (type) {
+		case SET_ALARM_PROGRESS: {
+			// * Set alarm
+			const repeatPeriod = payload?.['repeatPeriod'];
+			if (repeatPeriod) {
+				chrome?.alarms?.create(FILTER_ALARM, {
+					periodInMinutes: Number(repeatPeriod),
+				});
+			}
+			return sendResponse(() => false);
+		}
+		case CANCEL_ALARM_PROGRESS: {
+			// * Cancel alarm
+			chrome?.alarms?.clear(FILTER_ALARM);
+			return sendResponse({
+				type: CANCEL_ALARM_SUCCESS,
 			});
 		}
-		sendResponse(() => false);
+		default:
+			return;
 	}
 });
