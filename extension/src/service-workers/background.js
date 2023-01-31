@@ -5,6 +5,7 @@ import {
 	READ_WAIT_TIME_PROGRESS,
 	READ_WAIT_TIME_SUCCESS,
 	SET_ALARM_PROGRESS,
+	SET_ALARM_SUCCESS,
 } from '../contants';
 import { FILTER_ALARM } from '../contants/alarms';
 
@@ -64,7 +65,9 @@ chrome?.runtime?.onMessage?.addListener(function (
 					periodInMinutes: Number(repeatPeriod),
 				});
 			}
-			return sendResponse(() => false);
+			return sendResponse({
+				type: SET_ALARM_SUCCESS,
+			});
 		}
 		case CANCEL_ALARM_PROGRESS: {
 			// * Cancel alarm

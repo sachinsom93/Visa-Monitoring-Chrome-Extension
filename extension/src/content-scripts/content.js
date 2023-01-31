@@ -59,6 +59,7 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 		const { type } = extensionContentScriptMsg;
 		switch (type) {
 			case READ_WAIT_TIME_PROGRESS: {
+				location?.reload();
 				let { nonImmigrantVisaType, waitTime } = readWaitTimes();
 				extensionContentScriptPort?.postMessage({
 					type: READ_WAIT_TIME_SUCCESS,

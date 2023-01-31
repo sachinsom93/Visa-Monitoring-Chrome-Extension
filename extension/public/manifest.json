@@ -1,8 +1,8 @@
 {
 	"manifest_version": 3,
-	"version": "1.0.0",
+	"version": "0.0.0.1",
 	"name": "__MSG_extName__",
-	"description": "Demo Description for chrome extension.",
+	"description": "Monitoring visa 'Interview Required Petition-Based Temporary Workers (H, L, O, P, Q)' status.",
 	"default_locale": "en",
 	"action": {
 		"default_popup": "index.html",
@@ -16,7 +16,9 @@
 	"permissions": ["activeTab", "alarms", "notifications"],
 	"content_scripts": [
 		{
-			"matches": ["https://*/*", "http://*/*"],
+			"matches": [
+				"https://travel.state.gov/content/travel/en/us-visas/visa-information-resources/wait-times.html"
+			],
 			"js": ["./static/js/content.js"],
 			"all_frames": false,
 			"run_at": "document_end"

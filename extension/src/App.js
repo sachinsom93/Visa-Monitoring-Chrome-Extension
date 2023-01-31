@@ -3,10 +3,12 @@ import { MSG_FILTERS_TITLE, MSG_TITLE } from './i18n/index';
 import './app.css';
 import {
 	CANCEL_ALARM_PROGRESS,
+	CANCEL_ALARM_SUCCESS,
 	EXTENSION_CONTENTSCRIPT,
 	READ_WAIT_TIME_PROGRESS,
 	READ_WAIT_TIME_SUCCESS,
 	SET_ALARM_PROGRESS,
+	SET_ALARM_SUCCESS,
 } from './contants';
 
 const TEMP_WORKERS_FILTER =
@@ -17,6 +19,7 @@ export default function App() {
 	const formRef = useRef(null);
 	const [isReadingData, toggleIsReadingData] = useState(true);
 	const [visaMonitoringData, setVisaMonitoringData] = useState({});
+	const [statusMessage, setStatusMessage] = useState('');
 
 	const extensionContentScriptPort = useMemo(() => {
 		return (async function () {
@@ -68,7 +71,18 @@ export default function App() {
 				},
 			}),
 			function (response) {
-				console.log({ response });
+				const { type } = response;
+				switch (type) {
+					case SET_ALARM_SUCCESS:
+						setStatusMessage('Alarm set successfully.');
+						formRef?.current?.clear();
+						return;
+					case CANCEL_ALARM_SUCCESS:
+						setStatusMessage('Alarm cancelled successfully');
+						return;
+					default:
+						return;
+				}
 			},
 		);
 	}
@@ -85,15 +99,17 @@ export default function App() {
 	return (
 		<main className='container'>
 			<header>
-				<h1>{MSG_TITLE}</h1>
+				<h1 className='h2'>{MSG_TITLE}</h1>
 			</header>
 
 			{/* Filters Section  */}
 			<section className='filters-container'>
-				<h2 id='filters-title'>{MSG_FILTERS_TITLE}</h2>
+				<h2 id='filters-title' className='h3'>
+					{MSG_FILTERS_TITLE}
+				</h2>
 
 				<form ref={formRef} onSubmit={handleApplyFilter}>
-					<h3>{TEMP_WORKERS_FILTER}</h3>
+					<p className='text-bold'>{TEMP_WORKERS_FILTER}</p>
 
 					{isReadingData ? (
 						<span>Wait for data to load</span>
@@ -103,23 +119,46 @@ export default function App() {
 								Current Value:{' '}
 								<span>{visaMonitoringData?.[TEMP_WORKERS_FILTER]}</span>
 							</p>
-							<div className='form-control'>
-								<label htmlFor='filters-#1'>Threshold Value</label>
+							<div className='mb-3'>
+								<label htmlFor='thresholdValue' className='form-label'>
+									Threshold Value
+								</label>
 								<input
+									max={visaMonitoringData?.[TEMP_WORKERS_FILTER]}
+									required={true}
 									type={'number'}
 									id='thresholdValue'
 									name='thresholdValue'
+									className='form-control'
 								/>
 							</div>
 
-							<div className='form-control'>
-								<label htmlFor='filters-#1'>Repeat Period (minutes)</label>
-								<input type={'number'} id='repeatPeriod' name='repeatPeriod' />
+							<div className='mb-3'>
+								<label htmlFor='repeatPeriod' className='form-label'>
+									Repeat Period (minutes)
+								</label>
+								<input
+									min={1}
+									required={true}
+									type={'number'}
+									id='repeatPeriod'
+									name='repeatPeriod'
+									className='form-control'
+								/>
 							</div>
-							<button type='submit'>Set Alarm</button>
-							<button type='button' onClick={handleCancelAlarm}>
-								Cancel Alarm
-							</button>
+							<div className='flex flex-column justify-center align-items-center gap-4'>
+								<button className='btn btn-primary btn-sm' type='submit'>
+									Set Alarm
+								</button>
+								<button
+									type='button'
+									onClick={handleCancelAlarm}
+									className='btn btn-secondary btn-sm mx-2'
+								>
+									Cancel Alarm
+								</button>
+							</div>
+							<div className='text-muted my-2'>{statusMessage}</div>
 						</React.Fragment>
 					)}
 				</form>
