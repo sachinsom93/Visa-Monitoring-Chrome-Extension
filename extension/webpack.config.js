@@ -79,14 +79,18 @@ module.exports = {
 					from: path.join(__dirname, 'public', 'manifest.json'),
 				},
 				{
-					from: path.join(__dirname, 'public', 'favicon.ico')
+					from: path.join(__dirname, 'public', 'favicon.ico'),
 				},
 				{
-					from: path.join(__dirname, 'public', 'logo192.png')
+					from: path.join(__dirname, 'public', 'logo192.png'),
 				},
 				{
-					from: path.join(__dirname, 'public', 'logo512.png')
-				}
+					from: path.join(__dirname, 'public', 'logo512.png'),
+				},
+				{
+					from: path.join(__dirname, '_locales'),
+					to: '_locales',
+				},
 			],
 		}),
 	],

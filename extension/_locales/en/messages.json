@@ -1,0 +1,14 @@
+{
+	"extName": {
+		"message": "Visa Temporary Worker Status Monitor",
+		"description": "Visa Monitoring Chrome extension."
+	},
+	"extTitle": {
+		"message": "Monitor Visa Wait Time",
+		"description": "Extension for monitoring visa related time events"
+	},
+	"filtersTitle": {
+		"message": "Available Filters",
+		"description": "Title for filters section."
+	}
+}
