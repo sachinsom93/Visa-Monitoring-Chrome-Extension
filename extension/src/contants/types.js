@@ -10,3 +10,6 @@ export const SET_ALARM_SUCCESS = 'set alarm success';
 
 export const CANCEL_ALARM_PROGRESS = 'cancel alarm progress';
 export const CANCEL_ALARM_SUCCESS = 'cancel alarm success';
+
+export const GET_ALARM_STATUS_PROGESS = 'get alarm status progress';
+export const GET_ALARM_STATUS_SUCCESS = 'get alarm status success';
