@@ -65,6 +65,15 @@ chrome?.runtime?.onMessage?.addListener(function (
 					periodInMinutes: Number(repeatPeriod),
 				});
 			}
+
+			// * Set alarm info in storage & alarm state
+			chrome?.storage?.local?.set({
+				alarm: true,
+				filterName: payload?.['filterName'],
+				thresholdValue: payload?.['thresholdValue'],
+				repeatPeriod: payload?.['repeatPeriod'],
+			});
+
 			return sendResponse({
 				type: SET_ALARM_SUCCESS,
 			});
@@ -72,6 +81,10 @@ chrome?.runtime?.onMessage?.addListener(function (
 		case CANCEL_ALARM_PROGRESS: {
 			// * Cancel alarm
 			chrome?.alarms?.clear(FILTER_ALARM);
+
+			// * Toggle alarm state in storage
+			chrome?.storage?.local?.set({ alarm: false });
+
 			return sendResponse({
 				type: CANCEL_ALARM_SUCCESS,
 			});

@@ -5,6 +5,8 @@ import {
 	CANCEL_ALARM_PROGRESS,
 	CANCEL_ALARM_SUCCESS,
 	EXTENSION_CONTENTSCRIPT,
+	GET_ALARM_STATUS_PROGESS,
+	GET_ALARM_STATUS_SUCCESS,
 	READ_WAIT_TIME_PROGRESS,
 	READ_WAIT_TIME_SUCCESS,
 	SET_ALARM_PROGRESS,
@@ -19,7 +21,8 @@ export default function App() {
 	const formRef = useRef(null);
 	const [isReadingData, toggleIsReadingData] = useState(true);
 	const [visaMonitoringData, setVisaMonitoringData] = useState({});
-	const [statusMessage, setStatusMessage] = useState('');
+	const [isAlarmSet, toggleIsAlarmSet] = useState(false);
+	const [alarmStatus, setAlarmStatus] = useState({});
 
 	const extensionContentScriptPort = useMemo(() => {
 		return (async function () {
@@ -36,9 +39,17 @@ export default function App() {
 
 	useEffect(() => {
 		extensionContentScriptPort?.then((port) => {
+			// * Read current value of filter
 			port.postMessage({
 				type: READ_WAIT_TIME_PROGRESS,
 			});
+
+			// * Get alarm status
+			port.postMessage({
+				type: GET_ALARM_STATUS_PROGESS,
+			});
+
+			// * event listener for content port
 			port?.onMessage?.addListener(function (extensionContentScriptMsg) {
 				const { type, payload } = extensionContentScriptMsg;
 				switch (type) {
@@ -48,6 +59,11 @@ export default function App() {
 							...prev,
 							[payload?.nonImmigrantVisaType]: payload?.waitTime,
 						}));
+						return;
+
+					case GET_ALARM_STATUS_SUCCESS:
+						toggleIsAlarmSet(payload?.['alarm']);
+						setAlarmStatus(payload);
 						return;
 					default:
 						console.log('No Case mentioned - app.js');
@@ -73,13 +89,19 @@ export default function App() {
 			function (response) {
 				const { type } = response;
 				switch (type) {
-					case SET_ALARM_SUCCESS:
-						setStatusMessage('Alarm set successfully.');
-						formRef?.current?.clear();
+					case SET_ALARM_SUCCESS: {
+						toggleIsAlarmSet(true);
+						setAlarmStatus({
+							filterName: TEMP_WORKERS_FILTER,
+							thresholdValue: formEnteries?.['thresholdValue'],
+							repeatPeriod: formEnteries?.['repeatPeriod'],
+						});
+
+						// * Clear form fields here
+						const formCurrentTarget = event?.currentTarget;
+						formCurrentTarget?.reset();
 						return;
-					case CANCEL_ALARM_SUCCESS:
-						setStatusMessage('Alarm cancelled successfully');
-						return;
+					}
 					default:
 						return;
 				}
@@ -94,6 +116,16 @@ export default function App() {
 			JSON.stringify({
 				type: CANCEL_ALARM_PROGRESS,
 			}),
+			function (response) {
+				const { type } = response;
+				switch (type) {
+					case CANCEL_ALARM_SUCCESS:
+						toggleIsAlarmSet(false);
+						return;
+					default:
+						return;
+				}
+			},
 		);
 	}
 	return (
@@ -108,60 +140,93 @@ export default function App() {
 					{MSG_FILTERS_TITLE}
 				</h2>
 
-				<form ref={formRef} onSubmit={handleApplyFilter}>
-					<p className='text-bold'>{TEMP_WORKERS_FILTER}</p>
+				{isAlarmSet ? (
+					<React.Fragment>
+						<div className='card text-dark bg-light my-4'>
+							<div className='card-header'>
+								<b>Alarm Details</b>
+							</div>
+							<ul className='list-group list-group-flush'>
+								<li className='list-group-item'>
+									<span className='w-30'>
+										<b className='text-muted'>FILTER NAME: </b>
+									</span>
+									<span className='w-60'>{alarmStatus?.['filterName']}</span>
+								</li>
+								<li className='list-group-item'>
+									<span className='w-30'>
+										<b className='text-muted'>Threshold Value: </b>
+									</span>
+									<span className='w-60'>
+										{alarmStatus?.['thresholdValue']}
+									</span>
+								</li>
+								<li className='list-group-item'>
+									<span className='w-30'>
+										<b className='text-muted'>Repeat Period: </b>
+									</span>
+									<span className='w-60'>
+										{alarmStatus?.['repeatPeriod']} min
+									</span>
+								</li>
+							</ul>
+						</div>
+						<button
+							type='button'
+							onClick={handleCancelAlarm}
+							className='btn btn-secondary btn-sm'
+						>
+							Cancel Alarm
+						</button>
+					</React.Fragment>
+				) : (
+					<form ref={formRef} onSubmit={handleApplyFilter}>
+						<p className='text-bold'>{TEMP_WORKERS_FILTER}</p>
 
-					{isReadingData ? (
-						<span>Wait for data to load</span>
-					) : (
-						<React.Fragment>
-							<p>
-								Current Value:{' '}
-								<span>{visaMonitoringData?.[TEMP_WORKERS_FILTER]}</span>
-							</p>
-							<div className='mb-3'>
-								<label htmlFor='thresholdValue' className='form-label'>
-									Threshold Value
-								</label>
-								<input
-									max={visaMonitoringData?.[TEMP_WORKERS_FILTER]}
-									required={true}
-									type={'number'}
-									id='thresholdValue'
-									name='thresholdValue'
-									className='form-control'
-								/>
-							</div>
+						{isReadingData ? (
+							<span>Wait for data to load</span>
+						) : (
+							<React.Fragment>
+								<p>
+									Current Value:{' '}
+									<span>{visaMonitoringData?.[TEMP_WORKERS_FILTER]}</span>
+								</p>
+								<div className='mb-3'>
+									<label htmlFor='thresholdValue' className='form-label'>
+										Threshold Value
+									</label>
+									<input
+										max={visaMonitoringData?.[TEMP_WORKERS_FILTER]}
+										required={true}
+										type={'number'}
+										id='thresholdValue'
+										name='thresholdValue'
+										className='form-control'
+									/>
+								</div>
 
-							<div className='mb-3'>
-								<label htmlFor='repeatPeriod' className='form-label'>
-									Repeat Period (minutes)
-								</label>
-								<input
-									min={1}
-									required={true}
-									type={'number'}
-									id='repeatPeriod'
-									name='repeatPeriod'
-									className='form-control'
-								/>
-							</div>
-							<div className='flex flex-column justify-center align-items-center gap-4'>
-								<button className='btn btn-primary btn-sm' type='submit'>
-									Set Alarm
-								</button>
-								<button
-									type='button'
-									onClick={handleCancelAlarm}
-									className='btn btn-secondary btn-sm mx-2'
-								>
-									Cancel Alarm
-								</button>
-							</div>
-							<div className='text-muted my-2'>{statusMessage}</div>
-						</React.Fragment>
-					)}
-				</form>
+								<div className='mb-3'>
+									<label htmlFor='repeatPeriod' className='form-label'>
+										Repeat Period (minutes)
+									</label>
+									<input
+										min={1}
+										required={true}
+										type={'number'}
+										id='repeatPeriod'
+										name='repeatPeriod'
+										className='form-control'
+									/>
+								</div>
+								<div className='flex flex-column justify-center align-items-center gap-4'>
+									<button className='btn btn-primary btn-sm' type='submit'>
+										Set Alarm
+									</button>
+								</div>
+							</React.Fragment>
+						)}
+					</form>
+				)}
 			</section>
 		</main>
 	);
