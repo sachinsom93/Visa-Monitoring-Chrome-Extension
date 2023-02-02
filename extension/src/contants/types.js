@@ -18,3 +18,6 @@ export const GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS =
 	'Get filter non-immigrants types progress';
 export const GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS =
 	'Get filter non-immigrants types success';
+
+export const IS_LOCATION_ENTERED_PROGRESS = 'check location entered progress';
+export const IS_LOCATION_ENTERED_SUCCESS = 'check location entered success';

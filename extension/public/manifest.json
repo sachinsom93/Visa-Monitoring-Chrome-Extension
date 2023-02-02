@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"version": "0.0.0.1",
 	"name": "__MSG_extName__",
-	"description": "Monitoring visa 'Interview Required Petition-Based Temporary Workers (H, L, O, P, Q)' status.",
+	"description": "__MSG_extDescription__",
 	"default_locale": "en",
 	"action": {
 		"default_popup": "index.html",
