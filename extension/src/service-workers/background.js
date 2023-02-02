@@ -19,17 +19,57 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 		contentBackgroundMsg,
 	) {
 		const { type, payload } = contentBackgroundMsg;
+
 		if (type === READ_WAIT_TIME_SUCCESS) {
-			if (payload?.nonImmigrantVisaType && payload?.waitTime) {
-				chrome?.notifications?.create('testNotification-' + notificationId, {
-					type: 'basic',
-					title: 'Visa Wait Time Monitoring Extension',
-					message: `Current Value for ${payload?.nonImmigrantVisaType} is ${payload?.waitTime}`,
-					iconUrl: '../../logo192.png',
-					priority: 2,
+			const currentValue = payload?.waitTime;
+			const nonImmigrantVisaType = payload?.nonImmigrantVisaType;
+
+			// * Get checkNotifyOnlyOnThreshold status
+			chrome?.storage?.local
+				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue'])
+				.then((request) => {
+					const thresholdValue = request?.['thresholdValue'];
+					const checkNotifyOnlyOnThreshold =
+						request?.['checkNotifyOnlyOnThreshold'];
+
+					if (
+						checkNotifyOnlyOnThreshold === 'on' ||
+						checkNotifyOnlyOnThreshold === true
+					) {
+						// * Compare current wait time with threshold time
+
+						if (
+							currentValue &&
+							currentValue <= thresholdValue &&
+							nonImmigrantVisaType
+						) {
+							// * Create notification
+							chrome?.notifications?.create(
+								'thresholdWaitTimeNotification-' + notificationId,
+								{
+									type: 'basic',
+									title: 'Visa Appointment Wait Time Monitor',
+									message: `Current wait time for ${nonImmigrantVisaType} reaches to it's threshold value.`,
+									iconUrl: '../../logo192.png',
+									priority: 2,
+								},
+							);
+							notificationId += 1;
+						}
+					} else if (nonImmigrantVisaType && currentValue) {
+						chrome?.notifications?.create(
+							'waitTimeStatusNotification-' + notificationId,
+							{
+								type: 'basic',
+								title: 'Visa Wait Time Monitoring Extension',
+								message: `Current Value for ${payload?.nonImmigrantVisaType} is ${payload?.waitTime}`,
+								iconUrl: '../../logo192.png',
+								priority: 2,
+							},
+						);
+						notificationId += 1;
+					}
 				});
-				notificationId += 1;
-			}
 		}
 	});
 	chrome?.alarms?.onAlarm.addListener(function (alarm) {
@@ -38,6 +78,7 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 			case FILTER_ALARM:
 				// * Read storage for filter name
 				chrome?.storage?.local?.get(['filterName'])?.then((request) => {
+					// * Get updated wait times
 					contentBackgroundPort?.postMessage({
 						// TODO: Port closed!!!!!!
 						type: READ_WAIT_TIME_PROGRESS,
@@ -78,6 +119,7 @@ chrome?.runtime?.onMessage?.addListener(function (
 				filterName: payload?.['filterName'],
 				thresholdValue: payload?.['thresholdValue'],
 				repeatPeriod: payload?.['repeatPeriod'],
+				checkNotifyOnlyOnThreshold: payload?.['checkNotifyOnlyOnThreshold'],
 			});
 
 			return sendResponse({
@@ -87,6 +129,9 @@ chrome?.runtime?.onMessage?.addListener(function (
 		case CANCEL_ALARM_PROGRESS: {
 			// * Cancel alarm
 			chrome?.alarms?.clear(FILTER_ALARM);
+
+			// * Clear alarm state from storage
+			chrome?.storage?.local?.clear();
 
 			// * Toggle alarm state in storage
 			chrome?.storage?.local?.set({ alarm: false });
