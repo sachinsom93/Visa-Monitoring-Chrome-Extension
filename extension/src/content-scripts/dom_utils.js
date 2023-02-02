@@ -51,3 +51,15 @@ export function readNonImmigrantTypes() {
 	}
 	return nonImmigrantVisaTypes;
 }
+
+export function isLocationEntered() {
+	const locationWrapper = document?.getElementsByClassName(
+		'autocompleteWrapper',
+	)?.[0];
+	const locationWrapperComputedStyles =
+		window?.getComputedStyle(locationWrapper);
+	if (locationWrapperComputedStyles?.display === 'none') {
+		return true;
+	}
+	return false;
+}

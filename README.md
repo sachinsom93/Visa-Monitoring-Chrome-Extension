@@ -23,7 +23,7 @@
     npm install
     npm run build:production
     ```
-  Above command will generate a `dist` directory inside the project's root directory.
+  Above command will generate a `dist` directory inside the project's extension directory.
 
 - Open chrome browser and type `chrome://extension` to the url search box.
 
