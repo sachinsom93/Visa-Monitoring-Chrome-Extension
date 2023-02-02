@@ -26,6 +26,7 @@ export default function App() {
 	const [isReadingData, toggleIsReadingData] = useState(true);
 	const [visaMonitoringData, setVisaMonitoringData] = useState({});
 	const [nonImmigrantVisaTypes, setNonImmigrantVisaTypes] = useState([]);
+	const [notifyOnlyOnThreshold, toggleNotifyOnlyOnThreshold] = useState(false);
 	const [selectedNonImmigrantVisaType, setSelectedNonImmigrantVisaType] =
 		useState('');
 
@@ -127,6 +128,7 @@ export default function App() {
 				type: SET_ALARM_PROGRESS,
 				payload: {
 					...formEnteries,
+					['checkNotifyOnlyOnThreshold']: notifyOnlyOnThreshold,
 					['filterName']: selectedNonImmigrantVisaType,
 					['currentValue']: visaMonitoringData?.[selectedNonImmigrantVisaType],
 				},
@@ -166,6 +168,7 @@ export default function App() {
 				switch (type) {
 					case CANCEL_ALARM_SUCCESS:
 						toggleIsAlarmSet(false);
+						toggleNotifyOnlyOnThreshold(false);
 						return;
 					default:
 						return;
@@ -212,6 +215,14 @@ export default function App() {
 									</span>
 									<span className='w-60'>
 										{alarmStatus?.['repeatPeriod']} min
+									</span>
+								</li>
+								<li className='list-group-item'>
+									<span className='w-30'>
+										<b className='text-muted'>Notify Only On Threshold: </b>
+									</span>
+									<span className='w-60'>
+										{notifyOnlyOnThreshold ? 'on' : 'off'}
 									</span>
 								</li>
 							</ul>
@@ -286,6 +297,23 @@ export default function App() {
 										name='repeatPeriod'
 										className='form-control'
 									/>
+								</div>
+								<div className='form-check form-switch mb-3'>
+									<input
+										className='form-check-input'
+										type='checkbox'
+										id='onlyOnThresholdCheck'
+										checked={notifyOnlyOnThreshold}
+										onChange={() =>
+											toggleNotifyOnlyOnThreshold((prev) => !prev)
+										}
+									/>
+									<label
+										className='form-check-label'
+										htmlFor='onlyOnThresholdCheck'
+									>
+										Notify only on threshold
+									</label>
 								</div>
 								<div className='flex flex-column justify-center align-items-center gap-4'>
 									<button className='btn btn-primary btn-sm' type='submit'>

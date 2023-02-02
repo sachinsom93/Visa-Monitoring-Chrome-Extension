@@ -62,7 +62,13 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 			}
 			case GET_ALARM_STATUS_PROGESS: {
 				chrome?.storage?.local
-					?.get(['alarm', 'filterName', 'thresholdValue', 'repeatPeriod'])
+					?.get([
+						'alarm',
+						'filterName',
+						'thresholdValue',
+						'repeatPeriod',
+						'checkNotifyOnlyOnThreshold',
+					])
 					?.then((request) => {
 						extensionContentScriptPort?.postMessage({
 							type: GET_ALARM_STATUS_SUCCESS,
@@ -71,6 +77,8 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 								filterName: request?.['filterName'],
 								thresholdValue: request?.['thresholdValue'],
 								repeatPeriod: request?.['repeatPeriod'],
+								checkNotifyOnlyOnThreshold:
+									request?.['checkNotifyOnlyOnThreshold'],
 							},
 						});
 					});
