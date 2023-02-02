@@ -7,23 +7,26 @@ import {
 	EXTENSION_CONTENTSCRIPT,
 	GET_ALARM_STATUS_PROGESS,
 	GET_ALARM_STATUS_SUCCESS,
+	GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
+	GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS,
 	READ_WAIT_TIME_PROGRESS,
 	READ_WAIT_TIME_SUCCESS,
 	SET_ALARM_PROGRESS,
 	SET_ALARM_SUCCESS,
 } from './contants';
 
-const TEMP_WORKERS_FILTER =
-	'Interview Required Petition-Based Temporary Workers (H, L, O, P, Q)';
-
 export default function App() {
 	/* eslint-disable no-undef */
 	const formRef = useRef(null);
 	const [isReadingData, toggleIsReadingData] = useState(true);
 	const [visaMonitoringData, setVisaMonitoringData] = useState({});
-	const [isAlarmSet, toggleIsAlarmSet] = useState(false);
+	const [isAlarmSet, toggleIsAlarmSet] = useState(false); // TODO: Remove this and make use of alarmStatus
 	const [alarmStatus, setAlarmStatus] = useState({});
+	const [nonImmigrantVisaTypes, setNonImmigrantVisaTypes] = useState([]);
+	const [selectedNonImmigrantVisaType, setSelectedNonImmigrantVisaType] =
+		useState('');
 
+	// ? EXTENSION <--> CONTENT SCRIPT PORT
 	const extensionContentScriptPort = useMemo(() => {
 		return (async function () {
 			const currentTabQuery = {
@@ -39,14 +42,14 @@ export default function App() {
 
 	useEffect(() => {
 		extensionContentScriptPort?.then((port) => {
-			// * Read current value of filter
-			port.postMessage({
-				type: READ_WAIT_TIME_PROGRESS,
-			});
-
 			// * Get alarm status
 			port.postMessage({
 				type: GET_ALARM_STATUS_PROGESS,
+			});
+
+			// * Get filter non-immigrants types
+			port.postMessage({
+				type: GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
 			});
 
 			// * event listener for content port
@@ -65,12 +68,34 @@ export default function App() {
 						toggleIsAlarmSet(payload?.['alarm']);
 						setAlarmStatus(payload);
 						return;
+
+					case GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS:
+						setNonImmigrantVisaTypes(payload);
+						setSelectedNonImmigrantVisaType((prev) => {
+							if (!payload?.length) return prev;
+							return payload?.[0];
+						});
+						return;
+
 					default:
 						console.log('No Case mentioned - app.js');
 				}
 			});
 		});
 	}, []);
+
+	// * Read current value of filter
+	useEffect(() => {
+		selectedNonImmigrantVisaType &&
+			extensionContentScriptPort?.then((port) => {
+				port.postMessage({
+					type: READ_WAIT_TIME_PROGRESS,
+					payload: {
+						nonImmigrantVisaType: selectedNonImmigrantVisaType,
+					},
+				});
+			});
+	}, [selectedNonImmigrantVisaType]);
 
 	function handleApplyFilter(event) {
 		event.preventDefault();
@@ -82,8 +107,8 @@ export default function App() {
 				type: SET_ALARM_PROGRESS,
 				payload: {
 					...formEnteries,
-					['filterName']: TEMP_WORKERS_FILTER,
-					['currentValue']: visaMonitoringData?.[TEMP_WORKERS_FILTER],
+					['filterName']: selectedNonImmigrantVisaType,
+					['currentValue']: visaMonitoringData?.[selectedNonImmigrantVisaType],
 				},
 			}),
 			function (response) {
@@ -92,7 +117,7 @@ export default function App() {
 					case SET_ALARM_SUCCESS: {
 						toggleIsAlarmSet(true);
 						setAlarmStatus({
-							filterName: TEMP_WORKERS_FILTER,
+							filterName: formEnteries?.['nonImmigrantVisaType'],
 							thresholdValue: formEnteries?.['thresholdValue'],
 							repeatPeriod: formEnteries?.['repeatPeriod'],
 						});
@@ -181,7 +206,27 @@ export default function App() {
 					</React.Fragment>
 				) : (
 					<form ref={formRef} onSubmit={handleApplyFilter}>
-						<p className='text-bold'>{TEMP_WORKERS_FILTER}</p>
+						<div className='mb-3'>
+							<label className='form-label' htmlFor='filterName'>
+								Filter Non-Immigrant Visa Type
+							</label>
+							<select
+								id='filterName'
+								className='form-select form-select-sm'
+								aria-label='.form-select-sm'
+								onChange={(event) =>
+									setSelectedNonImmigrantVisaType(event?.target?.value)
+								}
+								name='nonImmigrantVisaType'
+							>
+								<option disabled>Select Non-Immigrant Visa Type</option>
+								{nonImmigrantVisaTypes?.map((nonImmigrantVisaType, index) => (
+									<option value={nonImmigrantVisaType} key={index}>
+										{nonImmigrantVisaType}
+									</option>
+								))}
+							</select>
+						</div>
 
 						{isReadingData ? (
 							<span>Wait for data to load</span>
@@ -189,14 +234,16 @@ export default function App() {
 							<React.Fragment>
 								<p>
 									Current Value:{' '}
-									<span>{visaMonitoringData?.[TEMP_WORKERS_FILTER]}</span>
+									<span>
+										{visaMonitoringData?.[selectedNonImmigrantVisaType]}
+									</span>
 								</p>
 								<div className='mb-3'>
 									<label htmlFor='thresholdValue' className='form-label'>
 										Threshold Value
 									</label>
 									<input
-										max={visaMonitoringData?.[TEMP_WORKERS_FILTER]}
+										max={visaMonitoringData?.[selectedNonImmigrantVisaType]}
 										required={true}
 										type={'number'}
 										id='thresholdValue'

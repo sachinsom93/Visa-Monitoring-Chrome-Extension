@@ -13,3 +13,8 @@ export const CANCEL_ALARM_SUCCESS = 'cancel alarm success';
 
 export const GET_ALARM_STATUS_PROGESS = 'get alarm status progress';
 export const GET_ALARM_STATUS_SUCCESS = 'get alarm status success';
+
+export const GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS =
+	'Get filter non-immigrants types progress';
+export const GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS =
+	'Get filter non-immigrants types success';

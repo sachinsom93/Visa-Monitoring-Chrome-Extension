@@ -36,9 +36,15 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 		const alarmType = alarm?.name;
 		switch (alarmType) {
 			case FILTER_ALARM:
-				contentBackgroundPort?.postMessage({
-					// TODO: Port closed!!!!!!
-					type: READ_WAIT_TIME_PROGRESS,
+				// * Read storage for filter name
+				chrome?.storage?.local?.get(['filterName'])?.then((request) => {
+					contentBackgroundPort?.postMessage({
+						// TODO: Port closed!!!!!!
+						type: READ_WAIT_TIME_PROGRESS,
+						payload: {
+							nonImmigrantVisaType: request?.filterName,
+						},
+					});
 				});
 				break;
 			default:
