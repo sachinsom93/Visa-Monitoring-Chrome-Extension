@@ -5,10 +5,16 @@ import {
 	GET_ALARM_STATUS_SUCCESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS,
+	IS_LOCATION_ENTERED_PROGRESS,
+	IS_LOCATION_ENTERED_SUCCESS,
 	READ_WAIT_TIME_PROGRESS,
 	READ_WAIT_TIME_SUCCESS,
 } from '../contants';
-import { readNonImmigrantTypes, readWaitTimes } from './dom_utils';
+import {
+	isLocationEntered,
+	readNonImmigrantTypes,
+	readWaitTimes,
+} from './dom_utils';
 
 /* eslint-disable no-undef*/
 const contentBackgroundPort = chrome?.runtime?.connect({
@@ -82,6 +88,14 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 				return extensionContentScriptPort?.postMessage({
 					type: GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS,
 					payload: readNonImmigrantTypes(),
+				});
+			}
+			case IS_LOCATION_ENTERED_PROGRESS: {
+				return extensionContentScriptPort?.postMessage({
+					type: IS_LOCATION_ENTERED_SUCCESS,
+					payload: {
+						isLocationEntered: isLocationEntered(),
+					},
 				});
 			}
 			default:

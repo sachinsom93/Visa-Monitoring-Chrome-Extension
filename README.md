@@ -23,7 +23,7 @@
     npm install
     npm run build:production
     ```
-  Above command will generate a `dist` directory inside the project's root directory.
+  Above command will generate a `dist` directory inside the project's extension directory.
 
 - Open chrome browser and type `chrome://extension` to the url search box.
 
@@ -35,7 +35,8 @@
 
 - Visit https://travel.state.gov/content/travel/en/us-visas/visa-information-resources/wait-times.html and access the extension.
 
-## Join The Development
+## PR's Are Welcome
+- Fork the repo and create your branch from `develop`.
 - Before you start contributing, run the app on your local machine, get familiar with it and then check for bugs or more features.
 - If you find any bug or want to add a new feature you have to open a new bug/feature issue.
 - If you would like to work on an existing issue, drop in a comment on the issue.

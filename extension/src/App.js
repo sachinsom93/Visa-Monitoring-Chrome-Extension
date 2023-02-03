@@ -2,26 +2,29 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MSG_FILTERS_TITLE, MSG_TITLE } from './i18n/index';
 import './app.css';
 import {
-	CANCEL_ALARM_PROGRESS,
+	SET_ALARM_SUCCESS,
+	SET_ALARM_PROGRESS,
 	CANCEL_ALARM_SUCCESS,
+	CANCEL_ALARM_PROGRESS,
+	READ_WAIT_TIME_SUCCESS,
 	EXTENSION_CONTENTSCRIPT,
-	GET_ALARM_STATUS_PROGESS,
+	READ_WAIT_TIME_PROGRESS,
 	GET_ALARM_STATUS_SUCCESS,
+	GET_ALARM_STATUS_PROGESS,
+	IS_LOCATION_ENTERED_SUCCESS,
+	IS_LOCATION_ENTERED_PROGRESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS,
-	READ_WAIT_TIME_PROGRESS,
-	READ_WAIT_TIME_SUCCESS,
-	SET_ALARM_PROGRESS,
-	SET_ALARM_SUCCESS,
 } from './contants';
 
 export default function App() {
 	/* eslint-disable no-undef */
 	const formRef = useRef(null);
+	const [alarmStatus, setAlarmStatus] = useState({});
+	const [isAlarmSet, toggleIsAlarmSet] = useState(false); // TODO: Remove this and make use of alarmStatus
+	const [isLocationEntered, toggleIsLocationEntered] = useState(false);
 	const [isReadingData, toggleIsReadingData] = useState(true);
 	const [visaMonitoringData, setVisaMonitoringData] = useState({});
-	const [isAlarmSet, toggleIsAlarmSet] = useState(false); // TODO: Remove this and make use of alarmStatus
-	const [alarmStatus, setAlarmStatus] = useState({});
 	const [nonImmigrantVisaTypes, setNonImmigrantVisaTypes] = useState([]);
 	const [notifyOnlyOnThreshold, toggleNotifyOnlyOnThreshold] = useState(false);
 	const [selectedNonImmigrantVisaType, setSelectedNonImmigrantVisaType] =
@@ -48,9 +51,9 @@ export default function App() {
 				type: GET_ALARM_STATUS_PROGESS,
 			});
 
-			// * Get filter non-immigrants types
+			// * Check if location is entered
 			port.postMessage({
-				type: GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
+				type: IS_LOCATION_ENTERED_PROGRESS,
 			});
 
 			// * event listener for content port
@@ -78,6 +81,10 @@ export default function App() {
 						});
 						return;
 
+					case IS_LOCATION_ENTERED_SUCCESS:
+						toggleIsLocationEntered(payload?.isLocationEntered);
+						return;
+
 					default:
 						console.log('No Case mentioned - app.js');
 				}
@@ -97,6 +104,19 @@ export default function App() {
 				});
 			});
 	}, [selectedNonImmigrantVisaType]);
+
+	// * Fire when 'location entered' check
+	useEffect(() => {
+		console.log({ isLocationEntered });
+		extensionContentScriptPort?.then((port) => {
+			if (isLocationEntered) {
+				// * Get filter non-immigrants types
+				port.postMessage({
+					type: GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
+				});
+			}
+		});
+	}, [isLocationEntered]);
 
 	function handleApplyFilter(event) {
 		event.preventDefault();
@@ -215,6 +235,8 @@ export default function App() {
 							Cancel Alarm
 						</button>
 					</React.Fragment>
+				) : !isLocationEntered ? (
+					<span>Please select one city from visa wait time site.</span>
 				) : (
 					<form ref={formRef} onSubmit={handleApplyFilter}>
 						<div className='mb-3'>
