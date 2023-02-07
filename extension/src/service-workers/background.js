@@ -26,7 +26,7 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 
 			// * Get checkNotifyOnlyOnThreshold status
 			chrome?.storage?.local
-				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue'])
+				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue', 'repeatPeriod'])
 				.then((request) => {
 					const thresholdValue = request?.['thresholdValue'];
 					const checkNotifyOnlyOnThreshold =
@@ -52,6 +52,11 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 								},
 							);
 							notificationId += 1;
+							chrome?.storage?.local?.set({
+								leftOverTime:
+									Date.now() + Number(request?.['repeatPeriod']) * 60 * 1000,
+								lastNotedAt: Date.now(),
+							});
 						}
 					} else if (nonImmigrantVisaType && currentValue) {
 						chrome?.notifications?.create(
@@ -65,6 +70,11 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 							},
 						);
 						notificationId += 1;
+						chrome?.storage?.local?.set({
+							leftOverTime:
+								Date.now() + Number(request?.['repeatPeriod']) * 60 * 1000,
+							lastNotedAt: Date.now(),
+						});
 					}
 				});
 		}

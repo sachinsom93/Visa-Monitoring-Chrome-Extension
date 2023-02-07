@@ -20,10 +20,12 @@ import {
 	SET_LEFTOVER_RELOADING_TIME_SUCCESS,
 	RELOAD_COUNTDOWN_PROGRESS,
 } from './contants';
+import CountdownRenderer from './components/CountdownRenderer';
 
 export default function App() {
 	/* eslint-disable no-undef */
 	const formRef = useRef(null);
+	const setIntervalRef = useRef(null);
 	const [alarmStatus, setAlarmStatus] = useState({});
 	const [isAlarmSet, toggleIsAlarmSet] = useState(false); // TODO: Remove this and make use of alarmStatus
 	const [isLocationEntered, toggleIsLocationEntered] = useState(false);
@@ -173,6 +175,29 @@ export default function App() {
 								Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
 						);
 
+						// * set interval
+						// TODO: HANLDE CLEAR INTERVAL
+						setIntervalRef.current = setInterval(
+							function () {
+								extensionContentScriptPort?.then((port) =>
+									port?.postMessage({
+										type: SET_LEFTOVER_RELOADING_TIME_PROGRESS,
+										payload: {
+											leftOverTime:
+												Date.now() +
+												Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
+											lastNotedAt: Date.now(),
+										},
+									}),
+								);
+								setReloadTimeLeft(
+									Date.now() +
+										Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
+								);
+							},
+							[Number(formEnteries?.['repeatPeriod']) * 60 * 1000],
+						);
+
 						// * Clear form fields here
 						const formCurrentTarget = event?.currentTarget;
 						formCurrentTarget?.reset();
@@ -199,6 +224,7 @@ export default function App() {
 						toggleIsAlarmSet(false);
 						toggleNotifyOnlyOnThreshold(false);
 						setReloadTimeLeft(0);
+						if (setIntervalRef.current) clearInterval(setIntervalRef.current);
 						return;
 					default:
 						return;
@@ -275,15 +301,18 @@ export default function App() {
 									</span>
 								</li>
 							</ul>
-							<div className='card-footer'>
-								<p>Time left for next notification: </p>
-								{reloadTimeLeft && (
-									<ReactCountdown
-										date={reloadTimeLeft}
-										onTick={countdownOnTickHandler}
-									/>
-								)}
-							</div>
+							{!notifyOnlyOnThreshold && (
+								<div className='card-footer'>
+									<p>Time left for next notification: </p>
+									{reloadTimeLeft && (
+										<ReactCountdown
+											date={reloadTimeLeft}
+											onTick={countdownOnTickHandler}
+											renderer={(props) => <CountdownRenderer {...props} />}
+										/>
+									)}
+								</div>
+							)}
 						</div>
 						<button
 							type='button'
