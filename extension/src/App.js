@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ReactCountdown from 'react-countdown';
 import { MSG_FILTERS_TITLE, MSG_TITLE } from './i18n/index';
 import './app.css';
 import {
@@ -15,11 +16,16 @@ import {
 	IS_LOCATION_ENTERED_PROGRESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS,
+	SET_LEFTOVER_RELOADING_TIME_PROGRESS,
+	SET_LEFTOVER_RELOADING_TIME_SUCCESS,
+	RELOAD_COUNTDOWN_PROGRESS,
 } from './contants';
+import CountdownRenderer from './components/CountdownRenderer';
 
 export default function App() {
 	/* eslint-disable no-undef */
 	const formRef = useRef(null);
+	const setIntervalRef = useRef(null);
 	const [alarmStatus, setAlarmStatus] = useState({});
 	const [isAlarmSet, toggleIsAlarmSet] = useState(false); // TODO: Remove this and make use of alarmStatus
 	const [isLocationEntered, toggleIsLocationEntered] = useState(false);
@@ -27,6 +33,7 @@ export default function App() {
 	const [visaMonitoringData, setVisaMonitoringData] = useState({});
 	const [nonImmigrantVisaTypes, setNonImmigrantVisaTypes] = useState([]);
 	const [notifyOnlyOnThreshold, toggleNotifyOnlyOnThreshold] = useState(false);
+	const [reloadTimeLeft, setReloadTimeLeft] = useState(0);
 	const [selectedNonImmigrantVisaType, setSelectedNonImmigrantVisaType] =
 		useState('');
 
@@ -71,6 +78,15 @@ export default function App() {
 					case GET_ALARM_STATUS_SUCCESS:
 						toggleIsAlarmSet(payload?.['alarm']);
 						setAlarmStatus(payload);
+						if (payload?.['repeatPeriod'])
+							chrome?.storage?.local
+								?.get(['leftOverTime', 'lastNotedAt'])
+								?.then((request) => {
+									setReloadTimeLeft(
+										Number(request?.['leftOverTime']) -
+											(Date.now() - Number(request?.['lastNotedAt'])),
+									);
+								});
 						return;
 
 					case GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS:
@@ -85,6 +101,14 @@ export default function App() {
 						toggleIsLocationEntered(payload?.isLocationEntered);
 						return;
 
+					case SET_LEFTOVER_RELOADING_TIME_SUCCESS: {
+						return;
+					}
+					case RELOAD_COUNTDOWN_PROGRESS:
+						chrome?.storage?.local?.get(['repeatPeriod'])?.then((request) => {
+							setReloadTimeLeft(Date.now() + Number(request?.['repeatPeriod']));
+						});
+						return;
 					default:
 						console.log('No Case mentioned - app.js');
 				}
@@ -107,7 +131,6 @@ export default function App() {
 
 	// * Fire when 'location entered' check
 	useEffect(() => {
-		console.log({ isLocationEntered });
 		extensionContentScriptPort?.then((port) => {
 			if (isLocationEntered) {
 				// * Get filter non-immigrants types
@@ -131,6 +154,7 @@ export default function App() {
 					['checkNotifyOnlyOnThreshold']: notifyOnlyOnThreshold,
 					['filterName']: selectedNonImmigrantVisaType,
 					['currentValue']: visaMonitoringData?.[selectedNonImmigrantVisaType],
+					alarmSetAt: Date.now(),
 				},
 			}),
 			function (response) {
@@ -143,6 +167,36 @@ export default function App() {
 							thresholdValue: formEnteries?.['thresholdValue'],
 							repeatPeriod: formEnteries?.['repeatPeriod'],
 						});
+
+						setReloadTimeLeft(
+							(prev) =>
+								prev +
+								Date.now() +
+								Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
+						);
+
+						// * set interval
+						// TODO: HANLDE CLEAR INTERVAL
+						setIntervalRef.current = setInterval(
+							function () {
+								extensionContentScriptPort?.then((port) =>
+									port?.postMessage({
+										type: SET_LEFTOVER_RELOADING_TIME_PROGRESS,
+										payload: {
+											leftOverTime:
+												Date.now() +
+												Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
+											lastNotedAt: Date.now(),
+										},
+									}),
+								);
+								setReloadTimeLeft(
+									Date.now() +
+										Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
+								);
+							},
+							[Number(formEnteries?.['repeatPeriod']) * 60 * 1000],
+						);
 
 						// * Clear form fields here
 						const formCurrentTarget = event?.currentTarget;
@@ -169,6 +223,8 @@ export default function App() {
 					case CANCEL_ALARM_SUCCESS:
 						toggleIsAlarmSet(false);
 						toggleNotifyOnlyOnThreshold(false);
+						setReloadTimeLeft(0);
+						if (setIntervalRef.current) clearInterval(setIntervalRef.current);
 						return;
 					default:
 						return;
@@ -176,6 +232,25 @@ export default function App() {
 			},
 		);
 	}
+
+	function countdownOnTickHandler(timeDelta) {
+		extensionContentScriptPort?.then((port) =>
+			port?.postMessage({
+				type: SET_LEFTOVER_RELOADING_TIME_PROGRESS,
+				payload: {
+					leftOverTime:
+						Date.now() +
+						timeDelta?.days * 24 * 60 * 60 * 1000 +
+						timeDelta?.hours * 60 * 60 * 1000 +
+						timeDelta?.minutes * 60 * 1000 +
+						timeDelta?.seconds * 1000 +
+						timeDelta?.milliseconds,
+					lastNotedAt: Date.now(),
+				},
+			}),
+		);
+	}
+
 	return (
 		<main className='container'>
 			<header>
@@ -226,6 +301,18 @@ export default function App() {
 									</span>
 								</li>
 							</ul>
+							{!notifyOnlyOnThreshold && (
+								<div className='card-footer'>
+									<p>Time left for next notification: </p>
+									{reloadTimeLeft && (
+										<ReactCountdown
+											date={reloadTimeLeft}
+											onTick={countdownOnTickHandler}
+											renderer={(props) => <CountdownRenderer {...props} />}
+										/>
+									)}
+								</div>
+							)}
 						</div>
 						<button
 							type='button'

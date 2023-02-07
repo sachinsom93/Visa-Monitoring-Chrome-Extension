@@ -26,16 +26,13 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 
 			// * Get checkNotifyOnlyOnThreshold status
 			chrome?.storage?.local
-				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue'])
+				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue', 'repeatPeriod'])
 				.then((request) => {
 					const thresholdValue = request?.['thresholdValue'];
 					const checkNotifyOnlyOnThreshold =
 						request?.['checkNotifyOnlyOnThreshold'];
 
-					if (
-						checkNotifyOnlyOnThreshold === 'on' ||
-						checkNotifyOnlyOnThreshold === true
-					) {
+					if (checkNotifyOnlyOnThreshold === true) {
 						// * Compare current wait time with threshold time
 
 						if (
@@ -49,12 +46,17 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 								{
 									type: 'basic',
 									title: 'Visa Appointment Wait Time Monitor',
-									message: `Current wait time for ${nonImmigrantVisaType} reaches to it's threshold value.`,
+									message: `Current wait time for ${nonImmigrantVisaType} reached to it's threshold value. Current Value: ${currentValue}`,
 									iconUrl: '../../logo192.png',
 									priority: 2,
 								},
 							);
 							notificationId += 1;
+							chrome?.storage?.local?.set({
+								leftOverTime:
+									Date.now() + Number(request?.['repeatPeriod']) * 60 * 1000,
+								lastNotedAt: Date.now(),
+							});
 						}
 					} else if (nonImmigrantVisaType && currentValue) {
 						chrome?.notifications?.create(
@@ -62,12 +64,17 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 							{
 								type: 'basic',
 								title: 'Visa Wait Time Monitoring Extension',
-								message: `Current Value for ${payload?.nonImmigrantVisaType} is ${payload?.waitTime}`,
+								message: `Current Value for ${nonImmigrantVisaType} is ${currentValue}`,
 								iconUrl: '../../logo192.png',
 								priority: 2,
 							},
 						);
 						notificationId += 1;
+						chrome?.storage?.local?.set({
+							leftOverTime:
+								Date.now() + Number(request?.['repeatPeriod']) * 60 * 1000,
+							lastNotedAt: Date.now(),
+						});
 					}
 				});
 		}
@@ -120,6 +127,7 @@ chrome?.runtime?.onMessage?.addListener(function (
 				thresholdValue: payload?.['thresholdValue'],
 				repeatPeriod: payload?.['repeatPeriod'],
 				checkNotifyOnlyOnThreshold: payload?.['checkNotifyOnlyOnThreshold'],
+				alarmSetAt: payload?.['alarmSetAt'],
 			});
 
 			return sendResponse({
