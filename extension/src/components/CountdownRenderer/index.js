@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import './styles.css';
 
 export default function CountdownRenderer(timeDelta) {
-	console.log(timeDelta);
 	return (
 		<div className='row'>
 			<div className='col-2'>
