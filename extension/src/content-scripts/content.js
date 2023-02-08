@@ -68,6 +68,7 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 						'thresholdValue',
 						'repeatPeriod',
 						'checkNotifyOnlyOnThreshold',
+						'scheduledTime',
 					])
 					?.then((request) => {
 						extensionContentScriptPort?.postMessage({
@@ -77,6 +78,7 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 								filterName: request?.['filterName'],
 								thresholdValue: request?.['thresholdValue'],
 								repeatPeriod: request?.['repeatPeriod'],
+								scheduledTime: request?.['scheduledTime'],
 								checkNotifyOnlyOnThreshold:
 									request?.['checkNotifyOnlyOnThreshold'],
 							},

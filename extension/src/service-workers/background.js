@@ -74,19 +74,27 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 	});
 	chrome?.alarms?.onAlarm.addListener(function (alarm) {
 		const alarmType = alarm?.name;
+		const scheduledTime = alarm?.scheduledTime;
 		switch (alarmType) {
 			case FILTER_ALARM:
 				// * Read storage for filter name
-				chrome?.storage?.local?.get(['filterName'])?.then((request) => {
-					// * Get updated wait times
-					contentBackgroundPort?.postMessage({
-						// TODO: Port closed!!!!!!
-						type: READ_WAIT_TIME_PROGRESS,
-						payload: {
-							nonImmigrantVisaType: request?.filterName,
-						},
+				chrome?.storage?.local
+					?.get(['filterName', 'repeatPeriod'])
+					?.then((request) => {
+						// * Get updated wait times
+						contentBackgroundPort?.postMessage({
+							// TODO: Port closed!!!!!!
+							type: READ_WAIT_TIME_PROGRESS,
+							payload: {
+								nonImmigrantVisaType: request?.filterName,
+							},
+						});
+						// * Save next alarm epoch's scheduledTime to storage
+						chrome?.storage?.local?.set({
+							scheduledTime:
+								scheduledTime + Number(request?.['repeatPeriod']) * 60 * 1000,
+						});
 					});
-				});
 				break;
 			default:
 				console.error({ alarm });
@@ -114,16 +122,19 @@ chrome?.runtime?.onMessage?.addListener(function (
 			}
 
 			// * Set alarm info in storage & alarm state
-			chrome?.storage?.local?.set({
+			const alarmStatus = {
 				alarm: true,
 				filterName: payload?.['filterName'],
 				thresholdValue: payload?.['thresholdValue'],
 				repeatPeriod: payload?.['repeatPeriod'],
 				checkNotifyOnlyOnThreshold: payload?.['checkNotifyOnlyOnThreshold'],
-			});
+				scheduledTime: payload?.['scheduledTime'],
+			};
+			chrome?.storage?.local?.set(alarmStatus);
 
 			return sendResponse({
 				type: SET_ALARM_SUCCESS,
+				payload: alarmStatus,
 			});
 		}
 		case CANCEL_ALARM_PROGRESS: {

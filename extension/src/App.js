@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MSG_FILTERS_TITLE, MSG_TITLE } from './i18n/index';
+import ReactCountdown from 'react-countdown';
 import './app.css';
 import {
 	SET_ALARM_SUCCESS,
@@ -16,6 +17,7 @@ import {
 	GET_FILTER_NONIMMIGRANTS_TYPES_PROGRESS,
 	GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS,
 } from './contants';
+import CountdownRenderer from './components/CountdownRenderer';
 
 export default function App() {
 	/* eslint-disable no-undef */
@@ -107,7 +109,6 @@ export default function App() {
 
 	// * Fire when 'location entered' check
 	useEffect(() => {
-		console.log({ isLocationEntered });
 		extensionContentScriptPort?.then((port) => {
 			if (isLocationEntered) {
 				// * Get filter non-immigrants types
@@ -131,17 +132,22 @@ export default function App() {
 					['checkNotifyOnlyOnThreshold']: notifyOnlyOnThreshold,
 					['filterName']: selectedNonImmigrantVisaType,
 					['currentValue']: visaMonitoringData?.[selectedNonImmigrantVisaType],
+					['scheduledTime']:
+						Date.now() + Number(formEnteries?.['repeatPeriod']) * 60 * 1000,
 				},
 			}),
 			function (response) {
-				const { type } = response;
+				const { type, payload } = response;
 				switch (type) {
 					case SET_ALARM_SUCCESS: {
 						toggleIsAlarmSet(true);
 						setAlarmStatus({
-							filterName: formEnteries?.['nonImmigrantVisaType'],
-							thresholdValue: formEnteries?.['thresholdValue'],
-							repeatPeriod: formEnteries?.['repeatPeriod'],
+							checkNotifyOnlyOnThreshold:
+								payload?.['checkNotifyOnlyOnThreshold'],
+							filterName: payload?.['nonImmigrantVisaType'],
+							thresholdValue: payload?.['thresholdValue'],
+							repeatPeriod: payload?.['repeatPeriod'],
+							scheduledTime: Number(payload?.['scheduledTime']),
 						});
 
 						// * Clear form fields here
@@ -169,6 +175,7 @@ export default function App() {
 					case CANCEL_ALARM_SUCCESS:
 						toggleIsAlarmSet(false);
 						toggleNotifyOnlyOnThreshold(false);
+						setAlarmStatus({});
 						return;
 					default:
 						return;
@@ -222,10 +229,19 @@ export default function App() {
 										<b className='text-muted'>Notify Only On Threshold: </b>
 									</span>
 									<span className='w-60'>
-										{notifyOnlyOnThreshold ? 'on' : 'off'}
+										{alarmStatus?.['checkNotifyOnlyOnThreshold'] ? 'on' : 'off'}
 									</span>
 								</li>
 							</ul>
+							<div className='card-footer'>
+								<p>Time left for next reload: </p>
+								{Number(alarmStatus?.['scheduledTime']) && (
+									<ReactCountdown
+										date={Number(alarmStatus?.['scheduledTime'])}
+										renderer={(props) => <CountdownRenderer {...props} />}
+									/>
+								)}
+							</div>
 						</div>
 						<button
 							type='button'
