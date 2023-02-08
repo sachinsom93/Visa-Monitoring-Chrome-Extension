@@ -124,7 +124,7 @@ chrome?.runtime?.onMessage?.addListener(function (
 			// * Set alarm info in storage & alarm state
 			const alarmStatus = {
 				alarm: true,
-				filterName: payload?.['filterName'],
+				filterName: payload?.['nonImmigrantVisaType'],
 				thresholdValue: payload?.['thresholdValue'],
 				repeatPeriod: payload?.['repeatPeriod'],
 				checkNotifyOnlyOnThreshold: payload?.['checkNotifyOnlyOnThreshold'],

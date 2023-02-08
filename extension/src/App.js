@@ -144,7 +144,7 @@ export default function App() {
 						setAlarmStatus({
 							checkNotifyOnlyOnThreshold:
 								payload?.['checkNotifyOnlyOnThreshold'],
-							filterName: payload?.['nonImmigrantVisaType'],
+							filterName: payload?.['filterName'],
 							thresholdValue: payload?.['thresholdValue'],
 							repeatPeriod: payload?.['repeatPeriod'],
 							scheduledTime: Number(payload?.['scheduledTime']),
