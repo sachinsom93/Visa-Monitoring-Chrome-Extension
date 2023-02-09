@@ -26,13 +26,16 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 
 			// * Get checkNotifyOnlyOnThreshold status
 			chrome?.storage?.local
-				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue', 'repeatPeriod'])
+				?.get(['checkNotifyOnlyOnThreshold', 'thresholdValue'])
 				.then((request) => {
 					const thresholdValue = request?.['thresholdValue'];
 					const checkNotifyOnlyOnThreshold =
 						request?.['checkNotifyOnlyOnThreshold'];
 
-					if (checkNotifyOnlyOnThreshold === true) {
+					if (
+						checkNotifyOnlyOnThreshold === 'on' ||
+						checkNotifyOnlyOnThreshold === true
+					) {
 						// * Compare current wait time with threshold time
 
 						if (
@@ -46,17 +49,12 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 								{
 									type: 'basic',
 									title: 'Visa Appointment Wait Time Monitor',
-									message: `Current wait time for ${nonImmigrantVisaType} reached to it's threshold value. Current Value: ${currentValue}`,
+									message: `Current wait time for ${nonImmigrantVisaType} reaches to it's threshold value.`,
 									iconUrl: '../../logo192.png',
 									priority: 2,
 								},
 							);
 							notificationId += 1;
-							chrome?.storage?.local?.set({
-								leftOverTime:
-									Date.now() + Number(request?.['repeatPeriod']) * 60 * 1000,
-								lastNotedAt: Date.now(),
-							});
 						}
 					} else if (nonImmigrantVisaType && currentValue) {
 						chrome?.notifications?.create(
@@ -64,36 +62,39 @@ chrome?.runtime?.onConnect?.addListener(function (contentBackgroundPort) {
 							{
 								type: 'basic',
 								title: 'Visa Wait Time Monitoring Extension',
-								message: `Current Value for ${nonImmigrantVisaType} is ${currentValue}`,
+								message: `Current Value for ${payload?.nonImmigrantVisaType} is ${payload?.waitTime}`,
 								iconUrl: '../../logo192.png',
 								priority: 2,
 							},
 						);
 						notificationId += 1;
-						chrome?.storage?.local?.set({
-							leftOverTime:
-								Date.now() + Number(request?.['repeatPeriod']) * 60 * 1000,
-							lastNotedAt: Date.now(),
-						});
 					}
 				});
 		}
 	});
 	chrome?.alarms?.onAlarm.addListener(function (alarm) {
 		const alarmType = alarm?.name;
+		const scheduledTime = alarm?.scheduledTime;
 		switch (alarmType) {
 			case FILTER_ALARM:
 				// * Read storage for filter name
-				chrome?.storage?.local?.get(['filterName'])?.then((request) => {
-					// * Get updated wait times
-					contentBackgroundPort?.postMessage({
-						// TODO: Port closed!!!!!!
-						type: READ_WAIT_TIME_PROGRESS,
-						payload: {
-							nonImmigrantVisaType: request?.filterName,
-						},
+				chrome?.storage?.local
+					?.get(['filterName', 'repeatPeriod'])
+					?.then((request) => {
+						// * Get updated wait times
+						contentBackgroundPort?.postMessage({
+							// TODO: Port closed!!!!!!
+							type: READ_WAIT_TIME_PROGRESS,
+							payload: {
+								nonImmigrantVisaType: request?.filterName,
+							},
+						});
+						// * Save next alarm epoch's scheduledTime to storage
+						chrome?.storage?.local?.set({
+							scheduledTime:
+								scheduledTime + Number(request?.['repeatPeriod']) * 60 * 1000,
+						});
 					});
-				});
 				break;
 			default:
 				console.error({ alarm });
@@ -121,17 +122,19 @@ chrome?.runtime?.onMessage?.addListener(function (
 			}
 
 			// * Set alarm info in storage & alarm state
-			chrome?.storage?.local?.set({
+			const alarmStatus = {
 				alarm: true,
-				filterName: payload?.['filterName'],
+				filterName: payload?.['nonImmigrantVisaType'],
 				thresholdValue: payload?.['thresholdValue'],
 				repeatPeriod: payload?.['repeatPeriod'],
 				checkNotifyOnlyOnThreshold: payload?.['checkNotifyOnlyOnThreshold'],
-				alarmSetAt: payload?.['alarmSetAt'],
-			});
+				scheduledTime: payload?.['scheduledTime'],
+			};
+			chrome?.storage?.local?.set(alarmStatus);
 
 			return sendResponse({
 				type: SET_ALARM_SUCCESS,
+				payload: alarmStatus,
 			});
 		}
 		case CANCEL_ALARM_PROGRESS: {

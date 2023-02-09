@@ -21,16 +21,3 @@ export const GET_FILTER_NONIMMIGRANTS_TYPES_SUCCESS =
 
 export const IS_LOCATION_ENTERED_PROGRESS = 'check location entered progress';
 export const IS_LOCATION_ENTERED_SUCCESS = 'check location entered success';
-
-export const SET_LEFTOVER_RELOADING_TIME_PROGRESS =
-	'set leftover reloading time progress';
-export const SET_LEFTOVER_RELOADING_TIME_SUCCESS =
-	'set leftover reloading time success';
-
-export const GET_LEFTOVER_RELOADING_TIME_PROGRESS =
-	'get leftover reloading time progress';
-export const GET_LEFTOVER_RELOADING_TIME_SUCCESS =
-	'get leftover reloading time success';
-
-export const RELOAD_COUNTDOWN_PROGRESS = 'reload countdown progress';
-export const RELOAD_COUNTDOWN_SUCCESS = 'reload countdown success';

@@ -9,8 +9,6 @@ import {
 	IS_LOCATION_ENTERED_SUCCESS,
 	READ_WAIT_TIME_PROGRESS,
 	READ_WAIT_TIME_SUCCESS,
-	SET_LEFTOVER_RELOADING_TIME_PROGRESS,
-	SET_LEFTOVER_RELOADING_TIME_SUCCESS,
 } from '../contants';
 import {
 	isLocationEntered,
@@ -70,7 +68,7 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 						'thresholdValue',
 						'repeatPeriod',
 						'checkNotifyOnlyOnThreshold',
-						'alarmSetAt',
+						'scheduledTime',
 					])
 					?.then((request) => {
 						extensionContentScriptPort?.postMessage({
@@ -80,7 +78,7 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 								filterName: request?.['filterName'],
 								thresholdValue: request?.['thresholdValue'],
 								repeatPeriod: request?.['repeatPeriod'],
-								alarmSetAt: request?.['alarmSetAt'],
+								scheduledTime: request?.['scheduledTime'],
 								checkNotifyOnlyOnThreshold:
 									request?.['checkNotifyOnlyOnThreshold'],
 							},
@@ -102,14 +100,6 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 					},
 				});
 			}
-			case SET_LEFTOVER_RELOADING_TIME_PROGRESS:
-				chrome?.storage?.local?.set({
-					leftOverTime: payload?.['leftOverTime'],
-					lastNotedAt: payload?.['lastNotedAt'],
-				});
-				return extensionContentScriptPort?.postMessage({
-					type: SET_LEFTOVER_RELOADING_TIME_SUCCESS,
-				});
 			default:
 				console.log('NO TYPE MENTIONED - content-script');
 		}
