@@ -79,6 +79,9 @@ chrome?.runtime?.onConnect?.addListener(function (extensionContentScriptPort) {
 								thresholdValue: request?.['thresholdValue'],
 								repeatPeriod: request?.['repeatPeriod'],
 								scheduledTime: request?.['scheduledTime'],
+								currentValue: readWaitTimes(request?.['filterName'])?.[
+									'waitTime'
+								],
 								checkNotifyOnlyOnThreshold:
 									request?.['checkNotifyOnlyOnThreshold'],
 							},

@@ -148,6 +148,7 @@ export default function App() {
 							thresholdValue: payload?.['thresholdValue'],
 							repeatPeriod: payload?.['repeatPeriod'],
 							scheduledTime: Number(payload?.['scheduledTime']),
+							currentValue: visaMonitoringData?.[selectedNonImmigrantVisaType],
 						});
 
 						// * Clear form fields here
@@ -174,6 +175,7 @@ export default function App() {
 				switch (type) {
 					case CANCEL_ALARM_SUCCESS:
 						toggleIsAlarmSet(false);
+						console.log({ nonImmigrantVisaTypes });
 						toggleNotifyOnlyOnThreshold(false);
 						setAlarmStatus({});
 						return;
@@ -204,9 +206,15 @@ export default function App() {
 							<ul className='list-group list-group-flush'>
 								<li className='list-group-item'>
 									<span className='w-30'>
-										<b className='text-muted'>FILTER NAME: </b>
+										<b className='text-muted'>Filter Name: </b>
 									</span>
 									<span className='w-60'>{alarmStatus?.['filterName']}</span>
+								</li>
+								<li className='list-group-item'>
+									<span className='w-30'>
+										<b className='text-muted'>Current Value: </b>
+									</span>
+									<span className='w-60'>{alarmStatus?.['currentValue']}</span>
 								</li>
 								<li className='list-group-item'>
 									<span className='w-30'>
